@@ -12,6 +12,7 @@
 #include "Components/LightComponent.h"
 #include "Engine/PointLight.h"
 #include "Engine/LocalPlayer.h"
+#include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Perception/AISense_Sight.h"
 #include "UserInterface/HUD/PlayerHUD.h"
@@ -28,6 +29,9 @@ AStealthProjectCharacter::AStealthProjectCharacter()
 {
 	// Set size for collision capsule
 	GetCapsuleComponent()->InitCapsuleSize(55.f, 96.0f);
+
+	// Enable crouching in movement component
+	GetCharacterMovement()->NavAgentProps.bCanCrouch = true;
 		
 	// Create a CameraComponent	
 	FirstPersonCameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("FirstPersonCamera"));
@@ -121,6 +125,10 @@ void AStealthProjectCharacter::SetupPlayerInputComponent(UInputComponent* Player
 
 		// Menu Toggle
 		EnhancedInputComponent->BindAction(ToggleInventoryAction, ETriggerEvent::Started, this, &AStealthProjectCharacter::ToggleInventory);
+
+		// Crouch
+		EnhancedInputComponent->BindAction(InteractAction, ETriggerEvent::Triggered, this, &AStealthProjectCharacter::HandleCrouch);
+
 	}
 	else
 	{
@@ -152,6 +160,44 @@ void AStealthProjectCharacter::Look(const FInputActionValue& Value)
 		// add yaw and pitch input to controller
 		AddControllerYawInput(LookAxisVector.X);
 		AddControllerPitchInput(LookAxisVector.Y);
+	}
+}
+
+
+void AStealthProjectCharacter::HandleCrouch(const FInputActionValue& Value)
+{
+	bool HoldCrouch = Value.Get<bool>();
+	UE_LOG(LogTemp, Warning, TEXT("Trying to run crouch action"));
+
+	if (ToggleCrouch)
+	{
+		if (IsCrouching)
+		{
+			UnCrouch();
+			IsCrouching = false;
+			UE_LOG(LogTemp, Warning, TEXT("Not Crouched"));
+		}
+		else
+		{
+			Crouch();
+			IsCrouching = true;
+			UE_LOG(LogTemp, Warning, TEXT("Crouched"));
+		}
+	}
+	else
+	{
+		if (HoldCrouch)
+		{
+			Crouch();
+			IsCrouching = true;
+			UE_LOG(LogTemp, Warning, TEXT("Crouched"));
+		}
+		else
+		{
+			UnCrouch();
+			IsCrouching = false;
+			UE_LOG(LogTemp, Warning, TEXT("Not Crouched"));
+		}
 	}
 }
 
@@ -199,7 +245,7 @@ void AStealthProjectCharacter::CalculateVisibility()
 	Visibility = 0.f;
 
 	// Max distance for which we want lights to affect visibility
-	constexpr float MaxDistance = 1000.f;
+	constexpr float MaxDistance = 1000.f; // We may want to update this value to be higher
 
 	// Grabbing all point lights in the scene
 	// TODO: There must be a better way to do this

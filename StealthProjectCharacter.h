@@ -73,6 +73,10 @@ class AStealthProjectCharacter : public ACharacter
 	/** Look Input Action */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	class UInputAction* LookAction;
+
+	/** Crouch Input Action */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+	class UInputAction* CrouchAction;
 	
 public:
 	//========================================================
@@ -113,6 +117,10 @@ protected:
 	// Properties and Variables
 	//=========================================================
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Input, meta = (AllowPrivateAccess = "true"))
+	bool ToggleCrouch = true; // Will be set by user settings once that is setup
+	bool IsCrouching = false;
+	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Character | Interaction")
 	TScriptInterface<IInteractionInterface> TargetInteractable;
 
@@ -158,6 +166,8 @@ protected:
 	/** Called for looking input */
 	void Look(const FInputActionValue& Value);
 
+	void HandleCrouch(const FInputActionValue& Value);
+
 	void ToggleInventory();
 
 	void PerformInteractionCheck();
@@ -170,4 +180,3 @@ protected:
 private:
 	FVector LastCheckedPosition;
 };
-
