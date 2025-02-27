@@ -99,9 +99,10 @@ public:
 
 	//------- Stealth Mechanics --------//
 	// This will need to be calculated every tick since this is dependant on a number of light sources
+	// TODO: Figure out way to make this so we don't need to calculate every tick (this is a waste of resources)
 	void CalculateVisibility();
-	
-	void CalculateWeight();
+
+	FORCEINLINE void SetWeight(float newWeight) { Weight = newWeight; }
 
 protected:
 	// APawn interface
@@ -138,6 +139,8 @@ protected:
 	// Stealth Variables
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Stealth")
 	float Visibility;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Stealth")
 	float Weight;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Perception")

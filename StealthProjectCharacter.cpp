@@ -227,11 +227,6 @@ void AStealthProjectCharacter::CalculateVisibility()
 	UE_LOG(LogTemp, Warning, TEXT("Visibility is: %f"), Visibility);
 }
 
-void AStealthProjectCharacter::CalculateWeight()
-{
-	// TODO: Weight calculation based on inventory weight + base player weight
-}
-
 void AStealthProjectCharacter::PerformInteractionCheck()
 {
 	InteractionData.LastInteractionCheckTime = GetWorld()->GetTimeSeconds();
