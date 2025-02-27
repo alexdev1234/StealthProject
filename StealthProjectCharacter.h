@@ -167,5 +167,7 @@ protected:
 	void EndInteract();
 	void Interact();
 
+private:
+	FVector LastCheckedPosition;
 };
 

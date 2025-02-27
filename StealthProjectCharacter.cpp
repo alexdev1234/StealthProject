@@ -58,7 +58,9 @@ AStealthProjectCharacter::AStealthProjectCharacter()
 	PerceptionStimuliSource->bAutoRegister = true;
 
 	// Stealth variable initialization
-	Visibility = 50.f;
+	Visibility = 0.f;
+	
+	LastCheckedPosition = FVector::ZeroVector;
 }
 
 void AStealthProjectCharacter::BeginPlay()
@@ -82,12 +84,17 @@ void AStealthProjectCharacter::BeginPlay()
 void AStealthProjectCharacter::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
-
-	CalculateVisibility();
 	
 	if (GetWorld()->TimeSince(InteractionData.LastInteractionCheckTime) > InteractionCheckFrequency)
 	{
 		PerformInteractionCheck();
+	}
+
+	// Check if the actor moved and update visibility
+	if (FVector::Dist(LastCheckedPosition, GetActorLocation()) > 50.0f)
+	{
+		CalculateVisibility();
+		LastCheckedPosition = GetActorLocation();
 	}
 }
 
@@ -187,15 +194,21 @@ void AStealthProjectCharacter::DropItem(UItemBase* Item, const int32 Quantity)
 
 void AStealthProjectCharacter::CalculateVisibility()
 {
-	// Reset visibility score at start of each calculation
+	// Reset visibility score so we are getting appropriate values
+	// TODO: This should be affected by weather and time of day
 	Visibility = 0.f;
-	
-	// Max distance at which light affects visibility
-	float MaxDistance = 1000.f;
 
-	// Get all point light actors in scene
+	// Max distance for which we want lights to affect visibility
+	constexpr float MaxDistance = 1000.f;
+
+	// Grabbing all point lights in the scene
+	// TODO: There must be a better way to do this
 	TArray<AActor*> PointLights;
 	UGameplayStatics::GetAllActorsOfClass(GetWorld(), APointLight::StaticClass(), PointLights);
+
+	float ClosestDistance = MaxDistance;
+	float ClosestLightEffect = 0.f;
+
 	for (AActor* Light : PointLights)
 	{
 		const APointLight* PointLight = Cast<APointLight>(Light);
@@ -204,26 +217,28 @@ void AStealthProjectCharacter::CalculateVisibility()
 			// Find distance between player and light
 			float Distance = FVector::Dist(PointLight->GetActorLocation(), GetActorLocation());
 
-			// Skip any light that is too far away
+			// Ignore lights outside of max distance
 			if (Distance > MaxDistance)
 			{
 				continue;
 			}
 
-			// Get light intensity
-			float LightIntensity = LightComponent->Intensity;
-
-			// Calculate visibility contribution from light
+			// Calculate how much the light contributes based on distance
 			float DistanceEffect = FMath::Clamp(1.0f - (Distance / MaxDistance), 0.0f, 1.0f);
 
-			// Add light contribution to total visibility score
-			Visibility += DistanceEffect * LightIntensity;
+			// We only want to consider the closest, strongest light source
+			float LightEffect = DistanceEffect * LightComponent->Intensity;
+
+			if (Distance < ClosestDistance)
+			{
+				ClosestDistance = Distance;
+				ClosestLightEffect = LightEffect;
+			}
 		}
 	}
 
-	// TODO: Get rid of magic number
-	Visibility = FMath::Clamp(Visibility / 50.f, 0.0f, 1.0f);
-	
+	// Normalize visibility score based on intensity range
+	Visibility += FMath::Clamp(ClosestLightEffect, 0.0f, 100.0f);
 	UE_LOG(LogTemp, Warning, TEXT("Visibility is: %f"), Visibility);
 }
 
