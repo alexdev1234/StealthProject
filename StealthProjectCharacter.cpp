@@ -127,8 +127,17 @@ void AStealthProjectCharacter::SetupPlayerInputComponent(UInputComponent* Player
 		EnhancedInputComponent->BindAction(ToggleInventoryAction, ETriggerEvent::Started, this, &AStealthProjectCharacter::ToggleInventory);
 
 		// Crouch
-		EnhancedInputComponent->BindAction(InteractAction, ETriggerEvent::Triggered, this, &AStealthProjectCharacter::HandleCrouch);
-
+		if (ToggleCrouch)
+		{
+			// If we just want to press once
+			EnhancedInputComponent->BindAction(CrouchAction, ETriggerEvent::Started, this, &AStealthProjectCharacter::HandleCrouchToggle);
+		}
+		else
+		{
+			// If we want to hold to crouch
+			EnhancedInputComponent->BindAction(CrouchAction, ETriggerEvent::Started, this, &AStealthProjectCharacter::HandleCrouchHold);
+			EnhancedInputComponent->BindAction(CrouchAction, ETriggerEvent::Completed, this, &AStealthProjectCharacter::HandleUncrouchHold);
+		}
 	}
 	else
 	{
@@ -164,41 +173,30 @@ void AStealthProjectCharacter::Look(const FInputActionValue& Value)
 }
 
 
-void AStealthProjectCharacter::HandleCrouch(const FInputActionValue& Value)
+void AStealthProjectCharacter::HandleCrouchToggle()
 {
-	bool HoldCrouch = Value.Get<bool>();
-	UE_LOG(LogTemp, Warning, TEXT("Trying to run crouch action"));
-
-	if (ToggleCrouch)
+	if (IsCrouching)
 	{
-		if (IsCrouching)
-		{
-			UnCrouch();
-			IsCrouching = false;
-			UE_LOG(LogTemp, Warning, TEXT("Not Crouched"));
-		}
-		else
-		{
-			Crouch();
-			IsCrouching = true;
-			UE_LOG(LogTemp, Warning, TEXT("Crouched"));
-		}
+		UnCrouch();
+		IsCrouching = false;
 	}
 	else
 	{
-		if (HoldCrouch)
-		{
-			Crouch();
-			IsCrouching = true;
-			UE_LOG(LogTemp, Warning, TEXT("Crouched"));
-		}
-		else
-		{
-			UnCrouch();
-			IsCrouching = false;
-			UE_LOG(LogTemp, Warning, TEXT("Not Crouched"));
-		}
+		Crouch();
+		IsCrouching = true;
 	}
+}
+
+void AStealthProjectCharacter::HandleCrouchHold()
+{
+	Crouch();
+	IsCrouching = true;
+}
+
+void AStealthProjectCharacter::HandleUncrouchHold()
+{
+	UnCrouch();
+	IsCrouching = false;
 }
 
 void AStealthProjectCharacter::ToggleInventory()
@@ -216,21 +214,21 @@ void AStealthProjectCharacter::DropItem(UItemBase* Item, const int32 Quantity)
 	// Check if the item is in the inventory
 	if (PlayerInventory->FindMatchingItem(Item))
 	{
-		FActorSpawnParameters spawnParams;
-		spawnParams.Owner = this;
-		spawnParams.bNoFail = true;
-		spawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
+		FActorSpawnParameters SpawnParams;
+		SpawnParams.Owner = this;
+		SpawnParams.bNoFail = true;
+		SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
 
 		// Spawn the item slightly in front of the player
-		const FVector spawnLocation = GetActorLocation() + (GetActorForwardVector() * 50.0f);
-		const FTransform spawnTransform(GetActorRotation(), spawnLocation);
+		const FVector SpawnLocation = GetActorLocation() + (GetActorForwardVector() * 50.0f);
+		const FTransform SpawnTransform(GetActorRotation(), SpawnLocation);
 
 		const int32 RemovedQuantity = PlayerInventory->RemoveAmountOfItem(Item, Quantity);
 
 		// Spawn the actor in the world
-		APickup* pickup = GetWorld()->SpawnActor<APickup>(APickup::StaticClass(), spawnTransform, spawnParams);
+		APickup* Pickup = GetWorld()->SpawnActor<APickup>(APickup::StaticClass(), SpawnTransform, SpawnParams);
 
-		pickup->InitializeDrop(Item, RemovedQuantity);
+		Pickup->InitializeDrop(Item, RemovedQuantity);
 	}
 	else
 	{
@@ -248,7 +246,7 @@ void AStealthProjectCharacter::CalculateVisibility()
 	constexpr float MaxDistance = 1000.f; // We may want to update this value to be higher
 
 	// Grabbing all point lights in the scene
-	// TODO: There must be a better way to do this
+	// TODO: Change this so that we only do this on the level load (so it's only done once)
 	TArray<AActor*> PointLights;
 	UGameplayStatics::GetAllActorsOfClass(GetWorld(), APointLight::StaticClass(), PointLights);
 
@@ -285,7 +283,7 @@ void AStealthProjectCharacter::CalculateVisibility()
 
 	// Normalize visibility score based on intensity range
 	Visibility += FMath::Clamp(ClosestLightEffect, 0.0f, 100.0f);
-	UE_LOG(LogTemp, Warning, TEXT("Visibility is: %f"), Visibility);
+	//UE_LOG(LogTemplateCharacter, Warning, TEXT("Visibility is: %f"), Visibility);
 }
 
 void AStealthProjectCharacter::PerformInteractionCheck()

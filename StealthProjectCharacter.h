@@ -151,6 +151,7 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Stealth")
 	float Weight;
 
+	// Player should be able to be seen by enemy AI
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Perception")
 	UAIPerceptionStimuliSourceComponent* PerceptionStimuliSource;
 
@@ -166,10 +167,15 @@ protected:
 	/** Called for looking input */
 	void Look(const FInputActionValue& Value);
 
-	void HandleCrouch(const FInputActionValue& Value);
+	/**  Called for crouch input */
+	void HandleCrouchToggle();
+	void HandleCrouchHold();
+	void HandleUncrouchHold();
 
+	/**  Called for opening player inventory - Toggle Inventory Action */
 	void ToggleInventory();
 
+	// Player interaction functions
 	void PerformInteractionCheck();
 	void FoundInteractable(AActor* NewInteractable);
 	void NoInteractableFound();
