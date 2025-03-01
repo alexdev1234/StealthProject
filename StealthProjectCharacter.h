@@ -77,6 +77,10 @@ class AStealthProjectCharacter : public ACharacter
 	/** Crouch Input Action */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	class UInputAction* CrouchAction;
+
+	/** Sprint Input Action */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+	class UInputAction* SprintAction;
 	
 public:
 	//========================================================
@@ -120,6 +124,17 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Input, meta = (AllowPrivateAccess = "true"))
 	bool ToggleCrouch = true; // Will be set by user settings once that is setup
 	bool IsCrouching = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Input, meta = (AllowPrivateAccess = "true"))
+	bool ToggleSprint = false; // Will be set by user settings once that is setup
+	bool IsSprinting = false;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement Speed", meta = (AllowPrivateAccess = "true"))
+	float WalkSpeed = 300.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement Speed", meta = (AllowPrivateAccess = "true"))
+	float SprintSpeed = 600.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement Speed", meta = (AllowPrivateAccess = "true"))
+	float CrouchSpeed = 150.f;
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Character | Interaction")
 	TScriptInterface<IInteractionInterface> TargetInteractable;
@@ -171,6 +186,11 @@ protected:
 	void HandleCrouchToggle();
 	void HandleCrouchHold();
 	void HandleUncrouchHold();
+
+	/**  Called for sprint input */
+	void HandleSprintToggle();
+	void HandleSprintHold();
+	void HandleStopSprintHold();
 
 	/**  Called for opening player inventory - Toggle Inventory Action */
 	void ToggleInventory();

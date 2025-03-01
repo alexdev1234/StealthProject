@@ -14,6 +14,7 @@
 #include "Engine/LocalPlayer.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
+#include "Math/UnitConversion.h"
 #include "Perception/AISense_Sight.h"
 #include "UserInterface/HUD/PlayerHUD.h"
 #include "UserInterface/Inventory/Component/InventoryComponent.h"
@@ -32,6 +33,7 @@ AStealthProjectCharacter::AStealthProjectCharacter()
 
 	// Enable crouching in movement component
 	GetCharacterMovement()->NavAgentProps.bCanCrouch = true;
+	GetCharacterMovement()->MaxWalkSpeed = WalkSpeed;
 		
 	// Create a CameraComponent	
 	FirstPersonCameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("FirstPersonCamera"));
@@ -138,6 +140,19 @@ void AStealthProjectCharacter::SetupPlayerInputComponent(UInputComponent* Player
 			EnhancedInputComponent->BindAction(CrouchAction, ETriggerEvent::Started, this, &AStealthProjectCharacter::HandleCrouchHold);
 			EnhancedInputComponent->BindAction(CrouchAction, ETriggerEvent::Completed, this, &AStealthProjectCharacter::HandleUncrouchHold);
 		}
+
+		// Sprint
+		if (ToggleSprint)
+		{
+			// If we just want to press once
+			EnhancedInputComponent->BindAction(SprintAction, ETriggerEvent::Started, this, &AStealthProjectCharacter::HandleSprintToggle);
+		}
+		else
+		{
+			// If we want to hold to crouch
+			EnhancedInputComponent->BindAction(SprintAction, ETriggerEvent::Started, this, &AStealthProjectCharacter::HandleSprintHold);
+			EnhancedInputComponent->BindAction(SprintAction, ETriggerEvent::Completed, this, &AStealthProjectCharacter::HandleStopSprintHold);
+		}
 	}
 	else
 	{
@@ -179,11 +194,15 @@ void AStealthProjectCharacter::HandleCrouchToggle()
 	{
 		UnCrouch();
 		IsCrouching = false;
+		IsSprinting = false;
+		GetCharacterMovement()->MaxWalkSpeed = WalkSpeed;
 	}
 	else
 	{
 		Crouch();
 		IsCrouching = true;
+		IsSprinting = false;
+		GetCharacterMovement()->MaxWalkSpeed = CrouchSpeed;
 	}
 }
 
@@ -191,12 +210,51 @@ void AStealthProjectCharacter::HandleCrouchHold()
 {
 	Crouch();
 	IsCrouching = true;
+	IsSprinting = false;
+	GetCharacterMovement()->MaxWalkSpeed = CrouchSpeed;
 }
 
 void AStealthProjectCharacter::HandleUncrouchHold()
 {
 	UnCrouch();
 	IsCrouching = false;
+	IsSprinting = false;
+	GetCharacterMovement()->MaxWalkSpeed = WalkSpeed;
+}
+
+void AStealthProjectCharacter::HandleSprintToggle()
+{
+	if (IsSprinting)
+	{
+		IsSprinting = false;
+		GetCharacterMovement()->MaxWalkSpeed = WalkSpeed;
+	}
+	else if (!IsSprinting && !IsCrouching)
+	{
+		// We should not be able to sprint if we are crouching
+		IsSprinting = true;
+		GetCharacterMovement()->MaxWalkSpeed = SprintSpeed;
+	}
+}
+
+void AStealthProjectCharacter::HandleSprintHold()
+{
+	// We should not be able to sprint if we are crouching
+	if (!IsCrouching)
+	{
+		IsSprinting = true;
+		GetCharacterMovement()->MaxWalkSpeed = SprintSpeed;
+	}
+}
+
+void AStealthProjectCharacter::HandleStopSprintHold()
+{
+	if (!IsCrouching)
+	{
+		// This shouldn't enter if we are currently crouching
+		IsSprinting = false;
+		GetCharacterMovement()->MaxWalkSpeed = WalkSpeed;
+	}
 }
 
 void AStealthProjectCharacter::ToggleInventory()
