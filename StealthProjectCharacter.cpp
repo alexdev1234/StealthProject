@@ -47,7 +47,7 @@ AStealthProjectCharacter::AStealthProjectCharacter()
 	// Adding spring arm to dampen camera "head bob"
 	SpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("Camera Spring Arm"));
 	SpringArm->SetupAttachment(GetMesh(), FName("head"));
-	SpringArm->TargetArmLength = 0.f;
+	SpringArm->TargetArmLength = -30.f;
 	SpringArm->bUsePawnControlRotation = true;
 	
 	// Create a CameraComponent
@@ -57,7 +57,7 @@ AStealthProjectCharacter::AStealthProjectCharacter()
 	FirstPersonCameraComponent->bUsePawnControlRotation = true;
 
 	// So player rotation doesn't directly affect mesh
-	bUseControllerRotationPitch = true;
+	bUseControllerRotationPitch = false;
 	bUseControllerRotationYaw = true;
 	bUseControllerRotationRoll = false;
 	GetCharacterMovement()->bOrientRotationToMovement = false;
