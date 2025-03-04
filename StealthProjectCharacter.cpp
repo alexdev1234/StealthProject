@@ -13,8 +13,8 @@
 #include "Engine/PointLight.h"
 #include "Engine/LocalPlayer.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "GameFramework/SpringArmComponent.h"
 #include "Kismet/GameplayStatics.h"
-#include "Math/UnitConversion.h"
 #include "Perception/AISense_Sight.h"
 #include "UserInterface/HUD/PlayerHUD.h"
 #include "UserInterface/Inventory/Component/InventoryComponent.h"
@@ -34,22 +34,38 @@ AStealthProjectCharacter::AStealthProjectCharacter()
 	// Enable crouching in movement component
 	GetCharacterMovement()->NavAgentProps.bCanCrouch = true;
 	GetCharacterMovement()->MaxWalkSpeed = WalkSpeed;
-		
-	// Create a CameraComponent	
+	GetCharacterMovement()->MaxWalkSpeedCrouched = CrouchSpeed;
+
+	// Setup full body mesh
+	GetMesh()->SetOnlyOwnerSee(false);
+	GetMesh()->SetupAttachment(GetCapsuleComponent());
+	GetMesh()->bCastDynamicShadow = true;
+	GetMesh()->CastShadow = true;
+	GetMesh()->SetRelativeLocation(FVector(0.f, 0.f, -95.f));
+	GetMesh()->SetRelativeRotation(FRotator(0.f, 0.f, -90.f));
+
+	// Adding spring arm to dampen camera "head bob"
+	SpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("Camera Spring Arm"));
+	SpringArm->SetupAttachment(GetMesh(), FName("head"));
+	SpringArm->TargetArmLength = 0.f;
+	SpringArm->bUsePawnControlRotation = true;
+	
+	// Create a CameraComponent
+	// We want the camera to be attached to the head bone of the mesh
 	FirstPersonCameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("FirstPersonCamera"));
-	FirstPersonCameraComponent->SetupAttachment(GetCapsuleComponent());
-	FirstPersonCameraComponent->SetRelativeLocation(FVector(-10.f, 0.f, 60.f)); // Position the camera
+	FirstPersonCameraComponent->SetupAttachment(SpringArm);
 	FirstPersonCameraComponent->bUsePawnControlRotation = true;
 
-	// Create a mesh component that will be used when being viewed from a '1st person' view (when controlling this pawn)
-	Mesh1P = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("CharacterMesh1P"));
-	Mesh1P->SetOnlyOwnerSee(true);
-	Mesh1P->SetupAttachment(FirstPersonCameraComponent);
-	Mesh1P->bCastDynamicShadow = false; // set this to true once an actual mesh is obtained
-	Mesh1P->CastShadow = false; // set this to true once an actual mesh is obtained
-	//Mesh1P->SetRelativeRotation(FRotator(0.9f, -19.19f, 5.2f));
-	Mesh1P->SetRelativeLocation(FVector(-30.f, 0.f, -150.f));
+	// So player rotation doesn't directly affect mesh
+	bUseControllerRotationPitch = true;
+	bUseControllerRotationYaw = true;
+	bUseControllerRotationRoll = false;
+	GetCharacterMovement()->bOrientRotationToMovement = false;
 
+	// Hide head to prevent clipping
+	GetMesh()->HideBoneByName(FName("head"), EPhysBodyOp::PBO_None);
+
+	// Interaction behavior
 	InteractionCheckFrequency = 0.1f;
 	InteractDistance = 225.0f;
 
@@ -195,14 +211,14 @@ void AStealthProjectCharacter::HandleCrouchToggle()
 		UnCrouch();
 		IsCrouching = false;
 		IsSprinting = false;
-		GetCharacterMovement()->MaxWalkSpeed = WalkSpeed;
+		UE_LOG(LogTemplateCharacter, Display, TEXT("Not crouching"));
 	}
 	else
 	{
 		Crouch();
 		IsCrouching = true;
 		IsSprinting = false;
-		GetCharacterMovement()->MaxWalkSpeed = CrouchSpeed;
+		UE_LOG(LogTemplateCharacter, Display, TEXT("Crouching"));
 	}
 }
 
@@ -211,7 +227,7 @@ void AStealthProjectCharacter::HandleCrouchHold()
 	Crouch();
 	IsCrouching = true;
 	IsSprinting = false;
-	GetCharacterMovement()->MaxWalkSpeed = CrouchSpeed;
+	UE_LOG(LogTemplateCharacter, Display, TEXT("Crouching"));
 }
 
 void AStealthProjectCharacter::HandleUncrouchHold()
@@ -219,7 +235,7 @@ void AStealthProjectCharacter::HandleUncrouchHold()
 	UnCrouch();
 	IsCrouching = false;
 	IsSprinting = false;
-	GetCharacterMovement()->MaxWalkSpeed = WalkSpeed;
+	UE_LOG(LogTemplateCharacter, Display, TEXT("Not crouching"));
 }
 
 void AStealthProjectCharacter::HandleSprintToggle()
