@@ -1,0 +1,1 @@
+This project has moved to a new repo. This github will turn more into code snippets, which will be added as the project continues along. For now, this git repo will stay as is, but overtime this will change to be a more curated set of code snippets.
